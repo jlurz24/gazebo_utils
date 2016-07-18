@@ -2,7 +2,7 @@
 #include <gazebo_msgs/ApplyBodyWrench.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <boost/random.hpp>
-#define USE_FIXED_SEED 1
+#define USE_FIXED_SEED 0
 
 namespace
 {
@@ -63,7 +63,7 @@ public:
         pnh.param("z", z, 0.0);
         pnh.param("duration", duration, DURATION_DEFAULT);
         pnh.param("waitForTopic", waitForTopic, true);
-        pnh.param("random", random, false);
+        pnh.param("random", random, true);
         pnh.param<string>("topic", topic, "/balancer/torques");
 
         if (waitForTopic)
@@ -97,15 +97,15 @@ public:
             while (!found)
             {
                 // X generator
-                boost::uniform_real<double> xRange(0, 200);
+                boost::uniform_real<double> xRange(0, 250);
                 boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genX(rng, xRange);
                 x = genX();
 
                 // Y generator
-                boost::uniform_real<double> yRange(-150, 150);
+                boost::uniform_real<double> yRange(-250, 250);
                 boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genY(rng, yRange);
                 y = genY();
-                if (fabs(x) >= 100 || fabs(y) >= 100)
+                if (fabs(x) >= 150 || fabs(y) >= 150)
                 {
                     found = true;
                 }
