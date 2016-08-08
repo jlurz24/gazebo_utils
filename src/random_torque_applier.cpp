@@ -2,7 +2,7 @@
 #include <gazebo_msgs/ApplyBodyWrench.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <boost/random.hpp>
-#define USE_FIXED_SEED 0
+#define USE_FIXED_SEED 1
 
 namespace
 {
@@ -97,12 +97,12 @@ public:
             while (!found)
             {
                 // X generator
-                boost::uniform_real<double> xRange(0, 250);
+                boost::uniform_real<double> xRange(-250, 250);
                 boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genX(rng, xRange);
                 x = genX();
 
                 // Y generator
-                boost::uniform_real<double> yRange(-250, 250);
+                boost::uniform_real<double> yRange(250, 0);
                 boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genY(rng, yRange);
                 y = genY();
                 if (fabs(x) >= 150 || fabs(y) >= 150)
