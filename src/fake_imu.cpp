@@ -9,6 +9,7 @@ using namespace std;
 using namespace geometry_msgs;
 
 static const double FREQUENCY = 0.001;
+static const double BASE_X_DEFAULT = 0.4;
 
 class FakeIMU {
 private:
@@ -54,6 +55,7 @@ private:
         PoseStamped ps;
         ps.header = header;
         ps.pose.orientation = orientation;
+        ps.pose.position.x = BASE_X_DEFAULT;
         poseVizPub.publish(ps);
     }
 
