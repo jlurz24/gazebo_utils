@@ -102,7 +102,7 @@ public:
                 x = genX();
 
                 // Y generator
-                boost::uniform_real<double> yRange(250, 0);
+                boost::uniform_real<double> yRange(0, 250);
                 boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genY(rng, yRange);
                 y = genY();
                 if (fabs(x) >= 150 || fabs(y) >= 150)
