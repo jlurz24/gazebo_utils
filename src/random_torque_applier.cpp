@@ -92,24 +92,22 @@ public:
 #endif
             rng.seed(seed);
 
+            // Generate total force
+            boost::uniform_real<double> totalForceRange(150, 250);
+            boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genTotal(rng, totalForceRange);
+            double total = genTotal();
 
-            bool found = false;
-            while (!found)
-            {
-                // X generator
-                boost::uniform_real<double> xRange(-250, 250);
-                boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genX(rng, xRange);
-                x = genX();
+            // Now distribute between x and y
+            boost::uniform_real<double> ratioRange(0, 1);
+            boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genRatio(rng, ratioRange);
+            double ratio = genRatio();
 
-                // Y generator
-                boost::uniform_real<double> yRange(0, 250);
-                boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > genY(rng, yRange);
-                y = genY();
-                if (fabs(x) >= 150 || fabs(y) >= 150)
-                {
-                    found = true;
-                }
-            }
+            x = total * ratio;
+            y = total * (1 - ratio);
+
+            // Distribute between positive and negative x force (which pushes along the y axis)
+            boost::bernoulli_distribution<> negativeGenerator(0.5);
+            x *= (negativeGenerator(rng) ? -1 : 1);
         }
     }
 
