@@ -140,6 +140,13 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "random_torque_applier");
     RandomTorqueApplier rta;
+
+    // Allow the socket to connect
+    ros::Duration(1.0).sleep();
+
+    // Send the torque and message
     rta.apply();
+
+    // Ensure the message is delivered
     ros::Duration(3.0).sleep();
 }

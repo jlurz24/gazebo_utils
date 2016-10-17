@@ -8,7 +8,7 @@ namespace {
 using namespace std;
 using namespace geometry_msgs;
 
-static const double FREQUENCY = 0.001;
+static const double FREQUENCY = 0.01;
 static const double BASE_X_DEFAULT = 0.4;
 
 class FakeIMU {
