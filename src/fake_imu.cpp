@@ -4,23 +4,25 @@
 #include <message_filters/subscriber.h>
 #include <geometry_msgs/PoseStamped.h>
 
-namespace {
+namespace
+{
 using namespace std;
 using namespace geometry_msgs;
 
 static const double FREQUENCY = 0.01;
 static const double BASE_X_DEFAULT = 0.4;
 
-class FakeIMU {
+class FakeIMU
+{
 private:
     //! Publisher for the pose
     ros::Publisher posePub;
 
-	//! Node handle
-	ros::NodeHandle nh;
+    //! Node handle
+    ros::NodeHandle nh;
 
-	//! Private nh
-	ros::NodeHandle pnh;
+    //! Private nh
+    ros::NodeHandle pnh;
 
     //! Frequency at which to publish the humanoid state
     ros::Timer timer;
@@ -35,10 +37,11 @@ private:
     string modelName;
 
 public:
-	FakeIMU() :
-		pnh("~") {
+    FakeIMU() :
+        pnh("~")
+    {
         posePub = nh.advertise<sensor_msgs::Imu>(
-				"out", 1);
+                      "out", 1);
 
         ros::service::waitForService("/gazebo/get_model_state");
         modelStateServ = nh.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state", true /* persistent */);
@@ -47,11 +50,12 @@ public:
 
         timer = nh.createTimer(ros::Duration(FREQUENCY), &FakeIMU::callback, this);
         timer.start();
-	}
+    }
 
 private:
 
-    void visualizeOrientation(const std_msgs::Header& header, const geometry_msgs::Quaternion& orientation) {
+    void visualizeOrientation(const std_msgs::Header& header, const geometry_msgs::Quaternion& orientation)
+    {
         PoseStamped ps;
         ps.header = header;
         ps.pose.orientation = orientation;
@@ -59,7 +63,8 @@ private:
         poseVizPub.publish(ps);
     }
 
-    sensor_msgs::Imu getIMUData(){
+    sensor_msgs::Imu getIMUData()
+    {
         gazebo_msgs::GetModelState modelState;
         modelState.request.model_name = modelName;
         modelStateServ.call(modelState);
@@ -73,7 +78,8 @@ private:
         return data;
     }
 
-    void callback(const ros::TimerEvent& event){
+    void callback(const ros::TimerEvent& event)
+    {
 
         // Lookup the current IMU data for the human
         sensor_msgs::Imu data = getIMUData();
@@ -82,12 +88,13 @@ private:
         // Publish the event
         ROS_DEBUG_STREAM("Publishing an IMU event: " << data);
         posePub.publish(data);
-      }
+    }
 };
 }
-int main(int argc, char** argv) {
-	ros::init(argc, argv, "fake_imu");
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "fake_imu");
 
-	FakeIMU fi;
-	ros::spin();
+    FakeIMU fi;
+    ros::spin();
 }
