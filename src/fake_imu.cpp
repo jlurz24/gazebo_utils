@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <gazebo_msgs/GetModelState.h>
+#include <gazebo_msgs/GetWorldProperties.h>
 #include <message_filters/subscriber.h>
 #include <geometry_msgs/PoseStamped.h>
 
@@ -30,11 +31,17 @@ private:
     //! Cached service client.
     ros::ServiceClient modelStateServ;
 
+    //! Cached service client.
+    ros::ServiceClient worldStateServ;
+
     //! Publisher for the pose visualization
     ros::Publisher poseVizPub;
 
     //! Model name
     string modelName;
+
+    //! Whether the model is initialized
+    bool isModelInitialized;
 
 public:
     FakeIMU() :
@@ -43,13 +50,22 @@ public:
         posePub = nh.advertise<sensor_msgs::Imu>(
                       "out", 1);
 
+        ros::service::waitForService("/gazebo/get_world_properties");
+        worldStateServ = nh.serviceClient<gazebo_msgs::GetWorldProperties>("/gazebo/get_world_properties", true /* persistent */);
+
         ros::service::waitForService("/gazebo/get_model_state");
         modelStateServ = nh.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state", true /* persistent */);
+
         pnh.param<string>("modelName", modelName, "human");
+
         poseVizPub = nh.advertise<geometry_msgs::PoseStamped>("imu/pose", 1);
+
+        isModelInitialized = false;
 
         timer = nh.createTimer(ros::Duration(FREQUENCY), &FakeIMU::callback, this);
         timer.start();
+
+        ROS_INFO("Fake human IMU initialized successfully");
     }
 
 private:
@@ -80,6 +96,25 @@ private:
 
     void callback(const ros::TimerEvent& event)
     {
+        if (!isModelInitialized) {
+            gazebo_msgs::GetWorldProperties worldProperties;
+            if (!worldStateServ.call(worldProperties)) {
+                ROS_ERROR("Failed to get world properties");
+                return;
+            }
+
+            for (unsigned int i = 0; i < worldProperties.response.model_names.size(); ++i) {
+                if (worldProperties.response.model_names[i] == modelName) {
+                    ROS_INFO("Human model is available");
+                    isModelInitialized = true;
+                }
+            }
+        }
+
+        if (!isModelInitialized) {
+            ROS_DEBUG("Human model not initialized");
+            return;
+        }
 
         // Lookup the current IMU data for the human
         sensor_msgs::Imu data = getIMUData();
