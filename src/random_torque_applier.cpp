@@ -2,6 +2,10 @@
 #include <gazebo_msgs/ApplyBodyWrench.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <boost/random.hpp>
+#include <iostream>
+#include <fstream>
+#include <boost/filesystem.hpp>
+
 #define USE_FIXED_SEED 1
 
 namespace
@@ -78,15 +82,14 @@ public:
             seed = static_cast<unsigned int>(std::time(NULL));
 #else
             const char* scenarioNumberStr = std::getenv("i");
-            unsigned int scenarioNumber = 0;
             if(scenarioNumberStr != NULL)
             {
-                scenarioNumber = boost::lexical_cast<unsigned int>(scenarioNumberStr);
+                unsigned int scenarioNumber = boost::lexical_cast<unsigned int>(scenarioNumberStr);
                 seed = scenarioNumber + 1000;
             }
             else
             {
-                cout << "No scenario number set. Using 0" << endl;
+                ROS_INFO("No scenario number set. Using %u", FIXED_SEED);
                 seed = FIXED_SEED;
             }
 #endif
@@ -111,6 +114,45 @@ public:
         }
     }
 
+    void writeHeader(ofstream& outputCSV)
+    {
+        outputCSV << "Scenario Number, Wrench (x), Wrench (y), Wrench(z)" << endl;
+    }
+
+    void printWrench(const geometry_msgs::Wrench& wrench)
+    {
+        // Get the name of the folder to store the result in
+        const char* resultsFolder = std::getenv("RESULTS_FOLDER");
+        if(resultsFolder == NULL)
+        {
+            ROS_DEBUG_STREAM("Results folder not set. Using current directory.");
+            resultsFolder = "";
+        }
+
+        const char* scenarioNumberStr = std::getenv("i");
+        if(scenarioNumberStr == NULL)
+        {
+            ROS_DEBUG_STREAM("Scenario number not set. Using 0.");
+            scenarioNumberStr = "0";
+        }
+
+        const string resultsFileName = boost::filesystem::current_path().string() + "/" + string(resultsFolder) + "/" + "wrenches.csv";
+        ROS_DEBUG_STREAM("Using results file: " << resultsFileName);
+        bool exists = boost::filesystem::exists(resultsFileName);
+        ofstream outputCSV;
+        outputCSV.open(resultsFileName.c_str(), ios::out | ios::app);
+        assert(outputCSV.is_open());
+
+        if(!exists)
+        {
+            writeHeader(outputCSV);
+        }
+
+        outputCSV << scenarioNumberStr << ", " << wrench.torque.x << ", " << wrench.torque.y << ", " << wrench.torque.z << endl;
+        outputCSV.close();
+        ROS_DEBUG_STREAM("Printing output file complete");
+    }
+
     void apply()
     {
     	ROS_INFO("Applying forces [%f, %f, %f]", x, y, z);
@@ -120,6 +162,8 @@ public:
         wrench.request.wrench.torque.y = y;
         wrench.request.wrench.torque.z = z;
         wrench.request.duration = ros::Duration(duration);
+
+        printWrench(wrench.request.wrench);
 
         if (!gazeboClient.call(wrench))
         {
