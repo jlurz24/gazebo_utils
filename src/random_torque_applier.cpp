@@ -48,12 +48,6 @@ private:
     //! Set random values for x-y
     bool random;
 
-    //! Wait for a specific topic
-    bool waitForTopic;
-
-    //! Topic to wait for
-    string topic;
-
     //! rng
     boost::mt19937 rng;
 public:
@@ -66,14 +60,7 @@ public:
         pnh.param("y", y, 0.0);
         pnh.param("z", z, 0.0);
         pnh.param("duration", duration, DURATION_DEFAULT);
-        pnh.param("waitForTopic", waitForTopic, true);
         pnh.param("random", random, true);
-        pnh.param<string>("topic", topic, "/balancer/torques");
-
-        if (waitForTopic)
-        {
-            ros::service::waitForService(topic);
-        }
 
         if (random)
         {
