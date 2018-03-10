@@ -1,12 +1,15 @@
 #include <ros/ros.h>
 #include <boost/math/constants/constants.hpp>
-#include <gazebo_msgs/SetModelConfiguration.h>
-#include <pr2_mechanism_msgs/SwitchController.h>
+#include <pr2_controllers_msgs/JointTrajectoryAction.h>
 #include <pr2_mechanism_msgs/ListControllers.h>
-#include <std_srvs/Empty.h>
+#include <actionlib/client/simple_action_client.h>
+#include <boost/math/constants/constants.hpp>
 
 using namespace std;
 using namespace ros;
+
+typedef actionlib::SimpleActionClient< pr2_controllers_msgs::JointTrajectoryAction > TrajClient;
+static const double pi = boost::math::constants::pi<double>();
 
 class SetArmPositions {
     private:
@@ -47,108 +50,77 @@ class SetArmPositions {
                 }
             }
 
-            ROS_INFO("Stopping controllers");
+            TrajClient* lTrajectoryClient = new TrajClient("l_arm_controller/joint_trajectory_action", true);
+            TrajClient* rTrajectoryClient = new TrajClient("r_arm_controller/joint_trajectory_action", true);
 
-            // Stop the arm controllers
-            const string switchControllerServiceName = "/pr2_controller_manager/switch_controller";
-            ROS_INFO("Waiting for arm controller service");
-            ros::service::waitForService(switchControllerServiceName);
-            ROS_INFO("Arm controller service ready");
-            ros::ServiceClient switchControllerClient = nh.serviceClient<pr2_mechanism_msgs::SwitchController>(switchControllerServiceName, true);
-
-            ROS_INFO("Stopping controllers");
-            pr2_mechanism_msgs::SwitchController switchControllersOff;
-            switchControllersOff.request.start_controllers.clear();
-            switchControllersOff.request.stop_controllers.clear();
-            switchControllersOff.request.stop_controllers.push_back("r_arm_controller");
-            switchControllersOff.request.stop_controllers.push_back("l_arm_controller");
-            switchControllersOff.request.strictness = pr2_mechanism_msgs::SwitchControllerRequest::STRICT;
-            if (!switchControllerClient.call(switchControllersOff)) {
-                ROS_ERROR("Failed to switch controllers off");
-                return;
+            while(!lTrajectoryClient->waitForServer()){
+                ROS_INFO("Waiting for the left joint_trajectory_action server");
+            }
+            while(!rTrajectoryClient->waitForServer()){
+                ROS_INFO("Waiting for the right joint_trajectory_action server");
             }
 
-            ROS_INFO("Controllers stopped");
+            pr2_controllers_msgs::JointTrajectoryGoal lGoal;
+            lGoal.trajectory.header.stamp = ros::Time::now();
+            lGoal.trajectory.joint_names.push_back("l_shoulder_pan_joint");
+            lGoal.trajectory.joint_names.push_back("l_shoulder_lift_joint");
+            lGoal.trajectory.joint_names.push_back("l_upper_arm_roll_joint");
+            lGoal.trajectory.joint_names.push_back("l_elbow_flex_joint");
+            lGoal.trajectory.joint_names.push_back("l_forearm_roll_joint");
+            lGoal.trajectory.joint_names.push_back("l_wrist_flex_joint");
+            lGoal.trajectory.joint_names.push_back("l_wrist_roll_joint");
+            lGoal.trajectory.points.resize(1);
+            lGoal.trajectory.points[0].positions.resize(7);
+            lGoal.trajectory.points[0].positions[0] = pi / 4.0;
+            lGoal.trajectory.points[0].positions[1] = 0.0;
+            lGoal.trajectory.points[0].positions[2] = pi / 2.0;
+            lGoal.trajectory.points[0].positions[3] = -pi / 4.0;
+            lGoal.trajectory.points[0].positions[4] = 0.0;
+            lGoal.trajectory.points[0].positions[5] = 0.0;
+            lGoal.trajectory.points[0].positions[6] = 0.0;
 
-            string pauseServiceName = "/gazebo/pause_physics";
-            ROS_INFO("Waiting for pause simulation service");
-            ros::service::waitForService(pauseServiceName);
-            ROS_INFO("Pause simulation service ready");
+            lGoal.trajectory.points[0].velocities.resize(7);
+            lGoal.trajectory.points[0].velocities[0] = 0.0;
 
-            ROS_INFO("Pausing physics");
+            lTrajectoryClient->sendGoal(lGoal);
 
-            // Pause simulation
-            ros::ServiceClient pauseSimulationClient = nh.serviceClient<std_srvs::Empty>(pauseServiceName, true);
-            std_srvs::Empty ps;
-            if (!pauseSimulationClient.call(ps)) {
-                ROS_ERROR("Failed to pause simulation");
-                return;
+            pr2_controllers_msgs::JointTrajectoryGoal rGoal;
+            rGoal.trajectory.header.stamp = ros::Time::now();
+            rGoal.trajectory.joint_names.push_back("r_shoulder_pan_joint");
+            rGoal.trajectory.joint_names.push_back("r_shoulder_lift_joint");
+            rGoal.trajectory.joint_names.push_back("r_upper_arm_roll_joint");
+            rGoal.trajectory.joint_names.push_back("r_elbow_flex_joint");
+            rGoal.trajectory.joint_names.push_back("r_forearm_roll_joint");
+            rGoal.trajectory.joint_names.push_back("r_wrist_flex_joint");
+            rGoal.trajectory.joint_names.push_back("r_wrist_roll_joint");
+
+            rGoal.trajectory.points.resize(1);
+            rGoal.trajectory.points[0].positions.resize(7);
+            rGoal.trajectory.points[0].positions[0] = -pi / 4.0;
+            rGoal.trajectory.points[0].positions[1] = 0.0;
+            rGoal.trajectory.points[0].positions[2] = -pi / 2.0;
+            rGoal.trajectory.points[0].positions[3] = -pi / 4.0;
+            rGoal.trajectory.points[0].positions[4] = 0.0;
+            rGoal.trajectory.points[0].positions[5] = 0.0;
+            rGoal.trajectory.points[0].positions[6] = 0.0;
+
+            rGoal.trajectory.points[0].velocities.resize(7);
+            rGoal.trajectory.points[0].velocities[0] = 0.0;
+
+            rTrajectoryClient->sendGoal(rGoal);
+
+            lTrajectoryClient->waitForResult(ros::Duration(5.0));
+            if (lTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
+                ROS_ERROR("Left trajectory client failed");
             }
 
-            ROS_INFO("Simulation paused");
-
-            string setModelConfigurationName = "/gazebo/set_model_configuration";
-            ROS_INFO("Waiting for set model configuration service");
-            ros::service::waitForService(setModelConfigurationName);
-            ROS_INFO("Set model configuration service ready");
-            ros::ServiceClient gazeboClient = nh.serviceClient<gazebo_msgs::SetModelConfiguration>(setModelConfigurationName, true /* persistent */);
-
-            ROS_INFO("Setting the model configuration");
-            gazebo_msgs::SetModelConfiguration config;
-            config.request.model_name = "pr2";
-            config.request.urdf_param_name = "robot_description";
-            config.request.joint_names.resize(4);
-            config.request.joint_names[0] = "l_shoulder_pan_link";
-            config.request.joint_names[1] = "r_shoulder_pan_link";
-            config.request.joint_names[2] = "l_upper_arm_roll_joint";
-            config.request.joint_names[3] = "r_upper_arm_roll_joint";
-            config.request.joint_positions.resize(4);
-            config.request.joint_positions[0] = 2.1350018853307198;
-            config.request.joint_positions[1] = -0.3689082990354322;
-            config.request.joint_positions[2] = 1.6399982206352233;
-            config.request.joint_positions[3] = -1.6399982206352233;
-
-            if (!gazeboClient.call(config))
-            {
-                ROS_ERROR("Failed to set model configuration");
-                return;
+            rTrajectoryClient->waitForResult(ros::Duration(5.0));
+            if (rTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
+                ROS_ERROR("Right trajectory client failed");
             }
-            if (!config.response.success) {
-                ROS_ERROR("Setting the configuration was unsuccessful: %s", config.response.status_message.c_str());
-                return;
-            }
-            ROS_INFO("Model configuration set");
-
-            string unpauseServiceName = "/gazebo/unpause_physics";
-            ROS_INFO("Waiting for unpause simulation service");
-            ros::service::waitForService(unpauseServiceName);
-            ROS_INFO("Unpause simulation service ready");
-
-            ROS_INFO("Unpausing physics");
-
-            // Unpause simulation
-            ros::ServiceClient unpauseSimulationClient = nh.serviceClient<std_srvs::Empty>(unpauseServiceName, true);
-            std_srvs::Empty ups;
-            if (!unpauseSimulationClient.call(ups)) {
-                ROS_ERROR("Failed to unpause simulation");
-                return;
-            }
-
-            ROS_INFO("Simulation unpaused");
-
-            // Restart the controllers
-            ROS_INFO("Starting controllers");
-            pr2_mechanism_msgs::SwitchController switchControllersOn;
-            switchControllersOn.request.start_controllers.clear();
-            switchControllersOn.request.stop_controllers.clear();
-            switchControllersOn.request.start_controllers.push_back("r_arm_controller");
-            switchControllersOn.request.start_controllers.push_back("l_arm_controller");
-            switchControllersOn.request.strictness = pr2_mechanism_msgs::SwitchControllerRequest::STRICT;
-            if (!switchControllerClient.call(switchControllersOn)) {
-                ROS_ERROR("Failed to switch controllers on");
-                return;
-            }
-            ROS_INFO("Controllers started");
+            delete lTrajectoryClient;
+            delete rTrajectoryClient;
+            ROS_INFO("Setting initial position complete");
         }
 };
 
@@ -156,5 +128,4 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "set_arm_positions");
   SetArmPositions sap;
   sap.moveToBasePositions();
-  ros::Duration(3.0).sleep();
 }

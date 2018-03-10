@@ -77,13 +77,13 @@ public:
         rng.seed(seed);
 
         {
-            // Generate x distance
+            // Generate x distance. 0.4 ensures the pole is in front of the base and the elbows
             boost::uniform_real<double> xRange(0.4, 1.0);
             boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > getX(rng, xRange);
             x = getX();
 
-            // TODO: Base this on the distance between the end effectors
-            boost::uniform_real<double> yRange(-0.15, 0.15);
+            // Distance between the end effectors minus 5cm padding for the size of the links
+            boost::uniform_real<double> yRange(-0.5, 0.5);
             boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > getY(rng, yRange);
             y = getY();
             ROS_INFO("Generated x, y [%f, %f]", x, y);
@@ -195,9 +195,14 @@ int main(int argc, char** argv)
     // Allow the socket to connect
     ros::Duration(1.0).sleep();
 
+    // Wait for the fall catcher to be ready
+    ROS_INFO("Waiting for the catch_human_controller");
+    ros::service::waitForService("/humanoid_catching/catch_human_controller");
+    ROS_INFO("Catch human controller ready");
+
     // Set the position/velocity and send the start fall message
     rfg.apply();
 
-    // Ensure the message is delivered
-    ros::Duration(3.0).sleep();
+    // Wait until the trial is complete
+    ros::Duration(30.0).sleep();
 }
