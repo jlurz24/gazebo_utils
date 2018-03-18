@@ -601,8 +601,11 @@
 		<Unit filename="gazebo_utils.layout" />
 		<Unit filename="mainpage.dox" />
 		<Unit filename="manifest.xml" />
+		<Unit filename="src/contact_forces_plugin.cpp" />
 		<Unit filename="src/fake_imu.cpp" />
+		<Unit filename="src/random_fall_generator.cpp" />
 		<Unit filename="src/random_torque_applier.cpp" />
+		<Unit filename="src/set_arm_positions.cpp" />
 		<Extensions>
 			<envvars />
 			<code_completion />

@@ -113,7 +113,7 @@ public:
 
             xDot = directionVector.x();
             yDot = directionVector.y();
-            ROS_INFO("Z: %f", directionVector.z());
+
             // assert(fabs(directionVector.z()) < 0.001);
             ROS_INFO("Generated x_dot, y_dot [%f, %f]", xDot, yDot);
         }
@@ -141,7 +141,7 @@ public:
             scenarioNumberStr = "0";
         }
 
-        const string resultsFileName = boost::filesystem::current_path().string() + "/" + string(resultsFolder) + "/" + "wrenches.csv";
+        const string resultsFileName = boost::filesystem::current_path().string() + "/" + string(resultsFolder) + "/" + "velocities.csv";
         ROS_DEBUG_STREAM("Using results file: " << resultsFileName);
         bool exists = boost::filesystem::exists(resultsFileName);
         ofstream outputCSV;
@@ -204,5 +204,5 @@ int main(int argc, char** argv)
     rfg.apply();
 
     // Wait until the trial is complete
-    ros::Duration(30.0).sleep();
+    ros::Duration(10.0).sleep();
 }
