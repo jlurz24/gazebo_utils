@@ -78,12 +78,12 @@ public:
 
         {
             // Generate x distance. 0.4 ensures the pole is in front of the base and the elbows
-            boost::uniform_real<double> xRange(0.4, 1.0);
+            boost::uniform_real<double> xRange(0.4, 0.6);
             boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > getX(rng, xRange);
             x = getX();
 
-            // Distance between the end effectors minus 5cm padding for the size of the links
-            boost::uniform_real<double> yRange(-0.5, 0.5);
+            // Distance between the end effectors minus 15cm padding for the size of the links
+            boost::uniform_real<double> yRange(-0.4, 0.4);
             boost::variate_generator<boost::mt19937&, boost::uniform_real<double> > getY(rng, yRange);
             y = getY();
             ROS_INFO("Generated x, y [%f, %f]", x, y);
