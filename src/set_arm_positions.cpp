@@ -118,6 +118,21 @@ class SetArmPositions {
             if (rTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
                 ROS_ERROR("Right trajectory client failed");
             }
+
+            // Resend goals to force the arms to stop at the position
+            rTrajectoryClient->sendGoal(rGoal);
+            lTrajectoryClient->sendGoal(lGoal);
+
+            lTrajectoryClient->waitForResult(ros::Duration(5.0));
+            if (lTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
+                ROS_ERROR("Left trajectory client failed");
+            }
+
+            rTrajectoryClient->waitForResult(ros::Duration(5.0));
+            if (rTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
+                ROS_ERROR("Right trajectory client failed");
+            }
+
             delete lTrajectoryClient;
             delete rTrajectoryClient;
             ROS_INFO("Setting initial position complete");

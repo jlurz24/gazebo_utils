@@ -117,6 +117,10 @@ public:
             // assert(fabs(directionVector.z()) < 0.001);
             ROS_INFO("Generated x_dot, y_dot [%f, %f]", xDot, yDot);
         }
+
+        nh.setParam("/fall_predictor/base_x", x);
+        nh.setParam("/fall_predictor/base_y", y);
+        nh.setParam("/fall_predictor/base_z", 0.0);
     }
 
     void writeHeader(ofstream& outputCSV)
