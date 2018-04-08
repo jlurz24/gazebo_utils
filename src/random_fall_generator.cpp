@@ -118,9 +118,9 @@ public:
             ROS_INFO("Generated x_dot, y_dot [%f, %f]", xDot, yDot);
         }
 
-        nh.setParam("/fall_predictor/base_x", x);
-        nh.setParam("/fall_predictor/base_y", y);
-        nh.setParam("/fall_predictor/base_z", 0.0);
+        nh.setParam("base_x", x);
+        nh.setParam("base_y", y);
+        nh.setParam("base_z", 0.0);
     }
 
     void writeHeader(ofstream& outputCSV)
@@ -197,7 +197,7 @@ int main(int argc, char** argv)
     RandomFallGenerator rfg;
 
     // Allow the socket to connect
-    ros::Duration(1.0).sleep();
+    ros::Duration(0.1).sleep();
 
     // Wait for the fall catcher to be ready
     ROS_INFO("Waiting for the catch_human_controller");

@@ -39,6 +39,7 @@ class SetArmPositions {
                 controllersCount = 0;
                 if (!listControllersClient.call(listControllers)) {
                     ROS_ERROR("List controllers call failed");
+                    continue;
                 }
                 for (unsigned int i = 0; i < listControllers.response.controllers.size() ; ++i) {
                     string name = listControllers.response.controllers[i];
@@ -81,6 +82,7 @@ class SetArmPositions {
 
             lGoal.trajectory.points[0].velocities.resize(7);
             lGoal.trajectory.points[0].velocities[0] = 0.0;
+            lGoal.trajectory.points[0].time_from_start = ros::Duration(1.0);
 
             lTrajectoryClient->sendGoal(lGoal);
 
@@ -106,6 +108,7 @@ class SetArmPositions {
 
             rGoal.trajectory.points[0].velocities.resize(7);
             rGoal.trajectory.points[0].velocities[0] = 0.0;
+            rGoal.trajectory.points[0].time_from_start = ros::Duration(1.0);
 
             rTrajectoryClient->sendGoal(rGoal);
 
@@ -119,19 +122,7 @@ class SetArmPositions {
                 ROS_ERROR("Right trajectory client failed");
             }
 
-            // Resend goals to force the arms to stop at the position
-            rTrajectoryClient->sendGoal(rGoal);
-            lTrajectoryClient->sendGoal(lGoal);
 
-            lTrajectoryClient->waitForResult(ros::Duration(5.0));
-            if (lTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
-                ROS_ERROR("Left trajectory client failed");
-            }
-
-            rTrajectoryClient->waitForResult(ros::Duration(5.0));
-            if (rTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
-                ROS_ERROR("Right trajectory client failed");
-            }
 
             delete lTrajectoryClient;
             delete rTrajectoryClient;
