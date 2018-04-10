@@ -27,14 +27,22 @@ class SetArmPositions {
 
             ROS_INFO("Moving arms to base position");
 
-            string listControllersServiceName = "/pr2_controller_manager/list_controllers";
-            ros::service::waitForService(listControllersServiceName);
+            const string listControllersServiceName = "/pr2_controller_manager/list_controllers";
+            ROS_INFO("Waiting for the list controllers service");
+            if (!ros::service::waitForService(listControllersServiceName, ros::Duration(60))) {
+                ROS_WARN("List controllers service could not be found");
+            }
+            ROS_INFO("List controllers service is up");
 
             // wait for pr2 controllers
             ros::ServiceClient listControllersClient = nh.serviceClient<pr2_mechanism_msgs::ListControllers>(listControllersServiceName);
             pr2_mechanism_msgs::ListControllers listControllers;
             unsigned int controllersCount = 0;
-            while (controllersCount != 2)
+
+            ros::Time start = ros::Time::now();
+            ros::Duration timeout = ros::Duration(60);
+
+            while (ros::ok() && controllersCount != 2 && ros::Time::now() - start < timeout)
             {
                 controllersCount = 0;
                 if (!listControllersClient.call(listControllers)) {
@@ -51,14 +59,33 @@ class SetArmPositions {
                 }
             }
 
-            TrajClient* lTrajectoryClient = new TrajClient("l_arm_controller/joint_trajectory_action", true);
-            TrajClient* rTrajectoryClient = new TrajClient("r_arm_controller/joint_trajectory_action", true);
-
-            while(!lTrajectoryClient->waitForServer()){
-                ROS_INFO("Waiting for the left joint_trajectory_action server");
+            if (controllersCount!= 2) {
+                ROS_WARN("Failed to find both running arm controllers");
             }
-            while(!rTrajectoryClient->waitForServer()){
-                ROS_INFO("Waiting for the right joint_trajectory_action server");
+
+            if (!ros::ok()) {
+                ROS_WARN("Node shutdown detected");
+                return;
+            }
+
+            auto_ptr<TrajClient> lTrajectoryClient(new TrajClient("l_arm_controller/joint_trajectory_action", true));
+            auto_ptr<TrajClient> rTrajectoryClient(new TrajClient("r_arm_controller/joint_trajectory_action", true));
+
+            ROS_INFO("Waiting for the left joint_trajectory_action server");
+            if(!lTrajectoryClient->waitForServer(ros::Duration(30))){
+                ROS_WARN("left joint trajectory server could not be found");
+            }
+            ROS_INFO("left joint_trajectory_action server is up");
+
+            ROS_INFO("Waiting for the right joint_trajectory_action server");
+            if(!rTrajectoryClient->waitForServer(ros::Duration(30))){
+                ROS_WARN("right joint trajectory server could not be found");
+            }
+            ROS_INFO("right joint_trajectory_action server is up");
+
+            if (!ros::ok()) {
+                ROS_WARN("Node shutdown detected");
+                return;
             }
 
             pr2_controllers_msgs::JointTrajectoryGoal lGoal;
@@ -112,6 +139,11 @@ class SetArmPositions {
 
             rTrajectoryClient->sendGoal(rGoal);
 
+            if (!ros::ok()) {
+                ROS_WARN("Node shutdown detected");
+                return;
+            }
+
             lTrajectoryClient->waitForResult(ros::Duration(5.0));
             if (lTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
                 ROS_ERROR("Left trajectory client failed");
@@ -122,10 +154,6 @@ class SetArmPositions {
                 ROS_ERROR("Right trajectory client failed");
             }
 
-
-
-            delete lTrajectoryClient;
-            delete rTrajectoryClient;
             ROS_INFO("Setting initial position complete");
         }
 };
