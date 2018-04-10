@@ -30,7 +30,8 @@ class SetArmPositions {
             const string listControllersServiceName = "/pr2_controller_manager/list_controllers";
             ROS_INFO("Waiting for the list controllers service");
             if (!ros::service::waitForService(listControllersServiceName, ros::Duration(60))) {
-                ROS_WARN("List controllers service could not be found");
+                ROS_ERROR("List controllers service could not be found");
+                return;
             }
             ROS_INFO("List controllers service is up");
 
@@ -60,7 +61,8 @@ class SetArmPositions {
             }
 
             if (controllersCount!= 2) {
-                ROS_WARN("Failed to find both running arm controllers");
+                ROS_ERROR("Failed to find both running arm controllers");
+                return;
             }
 
             if (!ros::ok()) {
@@ -73,13 +75,15 @@ class SetArmPositions {
 
             ROS_INFO("Waiting for the left joint_trajectory_action server");
             if(!lTrajectoryClient->waitForServer(ros::Duration(30))){
-                ROS_WARN("left joint trajectory server could not be found");
+                ROS_ERROR("left joint trajectory server could not be found");
+                return;
             }
             ROS_INFO("left joint_trajectory_action server is up");
 
             ROS_INFO("Waiting for the right joint_trajectory_action server");
             if(!rTrajectoryClient->waitForServer(ros::Duration(30))){
-                ROS_WARN("right joint trajectory server could not be found");
+                ROS_ERROR("right joint trajectory server could not be found");
+                return;
             }
             ROS_INFO("right joint_trajectory_action server is up");
 
@@ -109,7 +113,7 @@ class SetArmPositions {
 
             lGoal.trajectory.points[0].velocities.resize(7);
             lGoal.trajectory.points[0].velocities[0] = 0.0;
-            lGoal.trajectory.points[0].time_from_start = ros::Duration(1.0);
+            lGoal.trajectory.points[0].time_from_start = ros::Duration(2.0);
 
             lTrajectoryClient->sendGoal(lGoal);
 
@@ -135,23 +139,19 @@ class SetArmPositions {
 
             rGoal.trajectory.points[0].velocities.resize(7);
             rGoal.trajectory.points[0].velocities[0] = 0.0;
-            rGoal.trajectory.points[0].time_from_start = ros::Duration(1.0);
+            rGoal.trajectory.points[0].time_from_start = ros::Duration(2.0);
 
             rTrajectoryClient->sendGoal(rGoal);
 
-            if (!ros::ok()) {
-                ROS_WARN("Node shutdown detected");
-                return;
-            }
-
             lTrajectoryClient->waitForResult(ros::Duration(5.0));
+            rTrajectoryClient->waitForResult(ros::Duration(5.0));
+
             if (lTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
-                ROS_ERROR("Left trajectory client failed");
+                ROS_WARN("Left trajectory client failed");
             }
 
-            rTrajectoryClient->waitForResult(ros::Duration(5.0));
             if (rTrajectoryClient->getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
-                ROS_ERROR("Right trajectory client failed");
+                ROS_WARN("Right trajectory client failed");
             }
 
             ROS_INFO("Setting initial position complete");
