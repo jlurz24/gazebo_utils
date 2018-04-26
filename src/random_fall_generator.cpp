@@ -8,6 +8,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/math/constants/constants.hpp>
 #include <tf/transform_listener.h>
+#include <std_srvs/Empty.h>
+#include <gazebo_msgs/ApplyBodyWrench.h>
 
 #define USE_FIXED_SEED 1
 
@@ -17,9 +19,10 @@ namespace
 using namespace std;
 using namespace ros;
 
-static const double DURATION_DEFAULT = 0.001;
 static const unsigned int FIXED_SEED = 0;
 static const double pi = boost::math::constants::pi<double>();
+static const double MASS = 0.896;
+static const double DURATION = 0.02;
 
 class RandomFallGenerator
 {
@@ -33,6 +36,12 @@ private:
 
     //! Gazebo client
     ros::ServiceClient gazeboClient;
+
+    //! Wrench client
+    ros::ServiceClient wrenchClient;
+
+    //! Create ground joint client
+    ros::ServiceClient createGroundJointClient;
 
     //! Notifier
     ros::Publisher notifier;
@@ -55,7 +64,15 @@ public:
     RandomFallGenerator() :
         pnh("~")
     {
+        ros::service::waitForService("/gazebo/set_link_state");
+        ros::service::waitForService("/create_ground_joint");
+        ros::service::waitForService("/gazebo/apply_body_wrench");
+
         gazeboClient = nh.serviceClient<gazebo_msgs::SetLinkState>("/gazebo/set_link_state", true /* persistent */);
+        createGroundJointClient = nh.serviceClient<std_srvs::Empty>("/create_ground_joint", true /* persistent */);
+        wrenchClient = nh.serviceClient<gazebo_msgs::ApplyBodyWrench>("/gazebo/apply_body_wrench", true /* persistent */);
+
+
         notifier = nh.advertise<std_msgs::Header>("/human/fall", 1, true);
 
         unsigned int seed = 0;
@@ -164,21 +181,48 @@ public:
 
     void apply()
     {
-    	ROS_INFO("Setting position and velocity [%f, %f, %f, %f]", x, y, xDot, yDot);
+    	ROS_INFO("Setting position [%f, %f]", x, y);
         gazebo_msgs::SetLinkState state;
         state.request.link_state.link_name = "human::link";
         state.request.link_state.reference_frame = "world";
         state.request.link_state.pose.position.x = x;
         state.request.link_state.pose.position.y = y;
         state.request.link_state.pose.position.z = 0.8785;
-        state.request.link_state.twist.linear.x = xDot;
-        state.request.link_state.twist.linear.y = yDot;
 
         printState(state.request.link_state);
 
+        ROS_INFO("Setting the base position in Gazebo");
         if (!gazeboClient.call(state))
         {
            ROS_ERROR("Failed to apply state");
+           return;
+        }
+
+        std_srvs::Empty message = std_srvs::Empty();
+        if (!createGroundJointClient.call(message)) {
+            ROS_ERROR("Failed to create ground joint");
+            return;
+        }
+
+        ROS_INFO("Setting velocity [%f, %f]", xDot, yDot);
+
+        // Convert to acceleration
+        const double forceX = 1.35 * MASS * xDot / DURATION ;
+        const double forceY = 1.35 * MASS * yDot / DURATION;
+
+        ROS_INFO("Applying forces [%f, %f]", forceX, forceY);
+
+        gazebo_msgs::ApplyBodyWrench wrench;
+        wrench.request.body_name = "human::link";
+        wrench.request.wrench.force.x = forceX;
+        wrench.request.wrench.force.y = forceY;
+        wrench.request.wrench.torque.z = 0;
+        wrench.request.duration = ros::Duration(DURATION);
+
+        ROS_INFO("Starting the fall in Gazebo");
+        if (!wrenchClient.call(wrench))
+        {
+           ROS_ERROR("Failed to apply wrench");
            return;
         }
 
@@ -196,13 +240,13 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "random_fall_generator");
     RandomFallGenerator rfg;
 
-    // Allow the socket to connect
-    ros::Duration(0.1).sleep();
-
     // Wait for the fall catcher to be ready
     ROS_INFO("Waiting for the catch_human_controller");
     ros::service::waitForService("/humanoid_catching/catch_human_controller");
     ROS_INFO("Catch human controller ready");
+
+    // Allow all the sockets to connect
+    ros::Duration(0.5).sleep();
 
     // Set the position/velocity and send the start fall message
     rfg.apply();

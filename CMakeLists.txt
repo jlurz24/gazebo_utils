@@ -32,3 +32,7 @@ rosbuild_add_executable(random_fall_generator src/random_fall_generator.cpp)
 rosbuild_add_executable(set_arm_positions src/set_arm_positions.cpp)
 rosbuild_add_library(contact_forces_plugin src/contact_forces_plugin.cpp)
 target_link_libraries(contact_forces_plugin protobuf)
+
+rosbuild_add_library(ground_joint_plugin src/ground_joint_plugin.cpp)
+target_link_libraries(ground_joint_plugin protobuf)
+

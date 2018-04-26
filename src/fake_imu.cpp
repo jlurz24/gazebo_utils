@@ -10,8 +10,7 @@ namespace
 using namespace std;
 using namespace geometry_msgs;
 
-static const double FREQUENCY = 0.01;
-static const double BASE_X_DEFAULT = 0.4;
+static const double FREQUENCY = 0.033; // 30HZ
 
 class FakeIMU
 {
@@ -47,8 +46,7 @@ public:
     FakeIMU() :
         pnh("~")
     {
-        posePub = nh.advertise<sensor_msgs::Imu>(
-                      "out", 1);
+        posePub = nh.advertise<sensor_msgs::Imu>("out", 1);
 
         ros::service::waitForService("/gazebo/get_world_properties");
         worldStateServ = nh.serviceClient<gazebo_msgs::GetWorldProperties>("/gazebo/get_world_properties", true /* persistent */);
@@ -57,8 +55,6 @@ public:
         modelStateServ = nh.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state", true /* persistent */);
 
         pnh.param<string>("modelName", modelName, "human");
-
-        poseVizPub = nh.advertise<geometry_msgs::PoseStamped>("imu/pose", 1);
 
         isModelInitialized = false;
 
@@ -69,15 +65,6 @@ public:
     }
 
 private:
-
-    void visualizeOrientation(const std_msgs::Header& header, const geometry_msgs::Quaternion& orientation)
-    {
-        PoseStamped ps;
-        ps.header = header;
-        ps.pose.orientation = orientation;
-        ps.pose.position.x = BASE_X_DEFAULT;
-        poseVizPub.publish(ps);
-    }
 
     sensor_msgs::Imu getIMUData()
     {
@@ -90,6 +77,8 @@ private:
 
         data.angular_velocity = modelState.response.twist.angular;
         data.orientation = modelState.response.pose.orientation;
+
+        ROS_DEBUG("Velocity: [%f %f %f]", modelState.response.twist.linear.x, modelState.response.twist.linear.y, modelState.response.twist.linear.z);
 
         return data;
     }
@@ -118,7 +107,6 @@ private:
 
         // Lookup the current IMU data for the human
         sensor_msgs::Imu data = getIMUData();
-        visualizeOrientation(data.header, data.orientation);
 
         // Publish the event
         ROS_DEBUG_STREAM("Publishing an IMU event: " << data);
