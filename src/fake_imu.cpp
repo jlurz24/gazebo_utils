@@ -66,11 +66,18 @@ public:
 
 private:
 
-    sensor_msgs::Imu getIMUData()
+    sensor_msgs::Imu getIMUData(bool& success)
     {
         gazebo_msgs::GetModelState modelState;
         modelState.request.model_name = modelName;
-        modelStateServ.call(modelState);
+        if (!modelStateServ.call(modelState)){
+            ROS_WARN("Failed to get model state in IMU");
+            success = false;
+        }
+        else {
+            success = true;
+        }
+
         sensor_msgs::Imu data;
         data.header.stamp = ros::Time::now();
         data.header.frame_id = "/odom_combined";
@@ -78,7 +85,11 @@ private:
         data.angular_velocity = modelState.response.twist.angular;
         data.orientation = modelState.response.pose.orientation;
 
-        ROS_DEBUG("Velocity: [%f %f %f]", modelState.response.twist.linear.x, modelState.response.twist.linear.y, modelState.response.twist.linear.z);
+        ROS_DEBUG("Position: [%f %f %f], Orientation: [%f %f %f %f], Linear Velocity: [%f %f %f], Angular Velocity: [%f %f %f]",
+                modelState.response.pose.position.x, modelState.response.pose.position.y, modelState.response.pose.position.z,
+                modelState.response.pose.orientation.x, modelState.response.pose.orientation.y, modelState.response.pose.orientation.z, modelState.response.pose.orientation.w,
+                modelState.response.twist.linear.x, modelState.response.twist.linear.y, modelState.response.twist.linear.z,
+                modelState.response.twist.angular.x, modelState.response.twist.angular.y, modelState.response.twist.angular.z);
 
         return data;
     }
@@ -106,11 +117,13 @@ private:
         }
 
         // Lookup the current IMU data for the human
-        sensor_msgs::Imu data = getIMUData();
-
-        // Publish the event
-        ROS_DEBUG_STREAM("Publishing an IMU event: " << data);
-        posePub.publish(data);
+        bool success;
+        sensor_msgs::Imu data = getIMUData(success);
+        if (success) {
+            // Publish the event
+            ROS_DEBUG_STREAM("Publishing an IMU event: " << data);
+            posePub.publish(data);
+        }
     }
 };
 }

@@ -651,7 +651,6 @@
 		<Unit filename="src/random_fall_generator.cpp" />
 		<Unit filename="src/random_torque_applier.cpp" />
 		<Unit filename="src/set_arm_positions.cpp" />
-		<Unit filename="wrenches.csv" />
 		<Extensions>
 			<envvars />
 			<code_completion />

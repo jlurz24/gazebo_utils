@@ -71,8 +71,6 @@ public:
         gazeboClient = nh.serviceClient<gazebo_msgs::SetLinkState>("/gazebo/set_link_state", true /* persistent */);
         createGroundJointClient = nh.serviceClient<std_srvs::Empty>("/create_ground_joint", true /* persistent */);
         wrenchClient = nh.serviceClient<gazebo_msgs::ApplyBodyWrench>("/gazebo/apply_body_wrench", true /* persistent */);
-
-
         notifier = nh.advertise<std_msgs::Header>("/human/fall", 1, true);
 
         unsigned int seed = 0;
@@ -145,7 +143,7 @@ public:
         outputCSV << "Scenario Number, x, y, x_dot, y_dot" << endl;
     }
 
-    void printState(const gazebo_msgs::LinkState& linkState)
+    void printVariables()
     {
         // Get the name of the folder to store the result in
         const char* resultsFolder = std::getenv("RESULTS_FOLDER");
@@ -174,7 +172,7 @@ public:
             writeHeader(outputCSV);
         }
 
-        outputCSV << scenarioNumberStr << ", " << linkState.pose.position.x << ", " << linkState.pose.position.y << ", " << linkState.twist.linear.x << ", " << linkState.twist.linear.y << endl;
+        outputCSV << scenarioNumberStr << ", " << x << ", " << y << ", " << xDot << ", " << yDot << endl;
         outputCSV.close();
         ROS_DEBUG_STREAM("Printing output file complete");
     }
@@ -189,7 +187,7 @@ public:
         state.request.link_state.pose.position.y = y;
         state.request.link_state.pose.position.z = 0.8785;
 
-        printState(state.request.link_state);
+        printVariables();
 
         ROS_INFO("Setting the base position in Gazebo");
         if (!gazeboClient.call(state))
@@ -225,6 +223,10 @@ public:
            ROS_ERROR("Failed to apply wrench");
            return;
         }
+
+        // Pause to allow the velocity to be applied
+        // TODO: Reassess
+        // ros::Duration(DURATION  + 0.0165 /* half frequency of IMU */).sleep();
 
         ROS_INFO("Notifying");
         std_msgs::Header header;
