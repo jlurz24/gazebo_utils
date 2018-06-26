@@ -103,10 +103,10 @@ class SetArmPositions {
             lGoal.trajectory.joint_names.push_back("l_wrist_roll_joint");
             lGoal.trajectory.points.resize(1);
             lGoal.trajectory.points[0].positions.resize(7);
-            lGoal.trajectory.points[0].positions[0] = pi / 4.0;
+            lGoal.trajectory.points[0].positions[0] = pi / 6.0;
             lGoal.trajectory.points[0].positions[1] = 0.0;
             lGoal.trajectory.points[0].positions[2] = pi / 2.0;
-            lGoal.trajectory.points[0].positions[3] = -pi / 4.0;
+            lGoal.trajectory.points[0].positions[3] = -pi / 6.0;
             lGoal.trajectory.points[0].positions[4] = 0.0;
             lGoal.trajectory.points[0].positions[5] = 0.0;
             lGoal.trajectory.points[0].positions[6] = 0.0;
@@ -129,10 +129,10 @@ class SetArmPositions {
 
             rGoal.trajectory.points.resize(1);
             rGoal.trajectory.points[0].positions.resize(7);
-            rGoal.trajectory.points[0].positions[0] = -pi / 4.0;
+            rGoal.trajectory.points[0].positions[0] = -pi / 6.0;
             rGoal.trajectory.points[0].positions[1] = 0.0;
             rGoal.trajectory.points[0].positions[2] = -pi / 2.0;
-            rGoal.trajectory.points[0].positions[3] = -pi / 4.0;
+            rGoal.trajectory.points[0].positions[3] = -pi / 6.0;
             rGoal.trajectory.points[0].positions[4] = 0.0;
             rGoal.trajectory.points[0].positions[5] = 0.0;
             rGoal.trajectory.points[0].positions[6] = 0.0;
